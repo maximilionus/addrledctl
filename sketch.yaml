@@ -1,0 +1,9 @@
+profiles:
+  nano:
+    fqbn: arduino:avr:nano
+    platforms:
+      - platform: arduino:avr (1.8.6)
+    libraries:
+      - FastLED (3.7.8)
+
+default_profile: nano
