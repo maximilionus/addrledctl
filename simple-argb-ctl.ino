@@ -2,8 +2,8 @@
 
 #define VERSION "1.0.0"
 #define BUTTON_PIN 10
-#define ARGB_DATA_PIN 5
-#define LEDS_NUM 1
+#define ARGB_DATA_PIN 3
+#define LEDS_NUM 16
 
 CRGB leds[LEDS_NUM];
 
@@ -24,16 +24,31 @@ void setup() {
 void loop() {
     const bool button_state = digitalRead(BUTTON_PIN);
     // Test the RGB controls
-    if (button_state == HIGH) {
-        leds[0] = CRGB::Red;
+    if (button_state == LOW) {
+        for (uint16_t i = 0; i < LEDS_NUM; i++) {
+            leds[i] = CRGB::Red;
+        }
+
         FastLED.show();
         digitalWrite(LED_BUILTIN, HIGH);
-        Serial.println(F("ARGB: Set red"));
         delay(2000);
-        leds[0] = CRGB::Black;
+
+        for (uint16_t i = 0; i < LEDS_NUM; i++) {
+            leds[i] = CRGB::Green;
+        }
+
         FastLED.show();
-        digitalWrite(LED_BUILTIN, LOW);
-        Serial.println(F("ARGB: Disable"));
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(2000);
+
+        for (uint16_t i = 0; i < LEDS_NUM; i++) {
+            leds[i] = CRGB::Blue;
+            FastLED.show();
+            delay(2000);
+        }
+
+        FastLED.show();
+        digitalWrite(LED_BUILTIN, HIGH);
         delay(2000);
     }
 }
