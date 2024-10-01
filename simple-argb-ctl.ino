@@ -15,24 +15,25 @@ void setup() {
     Serial.println(__DATE__ " " __TIME__);
 
     pinMode(LED_BUILTIN, OUTPUT);  // DEBUG
-
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(ARGB_DATA_PIN, OUTPUT);
-
 
     FastLED.addLeds<NEOPIXEL, ARGB_DATA_PIN>(leds, LEDS_NUM);
 }
 
 void loop() {
+    const bool button_state = digitalRead(BUTTON_PIN);
     // Test the RGB controls
-    leds[0] = CRGB::Red;
-    FastLED.show();
-    digitalWrite(LED_BUILTIN, HIGH);
-    Serial.println(F("ARGB: Set red"));
-    delay(2000);
-    leds[0] = CRGB::Black;
-    FastLED.show();
-    digitalWrite(LED_BUILTIN, LOW);
-    Serial.println(F("ARGB: Disable"));
-    delay(2000);
+    if (button_state == HIGH) {
+        leds[0] = CRGB::Red;
+        FastLED.show();
+        digitalWrite(LED_BUILTIN, HIGH);
+        Serial.println(F("ARGB: Set red"));
+        delay(2000);
+        leds[0] = CRGB::Black;
+        FastLED.show();
+        digitalWrite(LED_BUILTIN, LOW);
+        Serial.println(F("ARGB: Disable"));
+        delay(2000);
+    }
 }
