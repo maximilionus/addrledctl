@@ -28,9 +28,11 @@ void loop() {
     leds[0] = CRGB::Red;
     FastLED.show();
     digitalWrite(LED_BUILTIN, HIGH);
+    Serial.println(F("ARGB: Set red"));
     delay(2000);
     leds[0] = CRGB::Black;
     FastLED.show();
     digitalWrite(LED_BUILTIN, LOW);
+    Serial.println(F("ARGB: Disable"));
     delay(2000);
 }
