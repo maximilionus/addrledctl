@@ -19,13 +19,15 @@ void setup() {
     pinMode(ARGB_DATA_PIN, OUTPUT);
 
     FastLED.addLeds<NEOPIXEL, ARGB_DATA_PIN>(leds, LEDS_NUM);
+    FastLED.clear();
+    FastLED.show();
 }
 
 void loop() {
     const bool button_state = digitalRead(BUTTON_PIN);
     // Test the RGB controls
     if (button_state == LOW) {
-        for (uint16_t i = 0; i < LEDS_NUM; i++) {
+        for (uint8_t i = 0; i < LEDS_NUM; i++) {
             leds[i] = CRGB::Red;
         }
 
@@ -33,22 +35,19 @@ void loop() {
         digitalWrite(LED_BUILTIN, HIGH);
         delay(2000);
 
-        for (uint16_t i = 0; i < LEDS_NUM; i++) {
+        for (uint8_t i = 0; i < LEDS_NUM; i++) {
             leds[i] = CRGB::Green;
         }
 
         FastLED.show();
-        digitalWrite(LED_BUILTIN, HIGH);
         delay(2000);
 
-        for (uint16_t i = 0; i < LEDS_NUM; i++) {
+        for (uint8_t i = 0; i < LEDS_NUM; i++) {
             leds[i] = CRGB::Blue;
             FastLED.show();
-            delay(2000);
+            delay(100);
         }
 
         FastLED.show();
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(2000);
     }
 }
