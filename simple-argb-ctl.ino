@@ -6,6 +6,13 @@
 #define LEDS_NUM 16
 
 CRGB leds[LEDS_NUM];
+unsigned long btnLastPressTime = 0;
+
+enum ButtonStatus {
+    Released,
+    Press,
+    Hold
+};
 
 void setup() {
     Serial.begin(9600);
@@ -21,33 +28,44 @@ void setup() {
     FastLED.addLeds<NEOPIXEL, ARGB_DATA_PIN>(leds, LEDS_NUM);
     FastLED.clear();
     FastLED.show();
+
+    Serial.println(F("Setup done"));
 }
 
 void loop() {
-    const bool button_state = digitalRead(BUTTON_PIN);
+    // Process button input
+    // TODO: Probably needs to be reworked into a split fnc
+    const bool buttonRead = digitalRead(BUTTON_PIN);
+    ButtonStatus buttonStatus = Released;
+
+    if (buttonRead == LOW) {
+        const unsigned long btnTimeFromLastPress = millis() - btnLastPressTime;
+        if (btn_time_from_last_press <= 10) {
+            buttonStatus = Hold;
+        } else if (btn_time_from_last_press <= 1000) {
+            buttonStatus = Press;
+        }
+    }
+
     // Test the RGB controls
-    if (button_state == LOW) {
-        for (uint8_t i = 0; i < LEDS_NUM; i++) {
-            leds[i] = CRGB::Red;
-        }
+    for (uint8_t i = 0; i < LEDS_NUM; i++) {
+        leds[i] = CRGB::Red;
+    }
 
+    FastLED.show();
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(2000);
+
+    for (uint8_t i = 0; i < LEDS_NUM; i++) {
+        leds[i] = CRGB::Green;
+    }
+
+    FastLED.show();
+    delay(2000);
+
+    for (uint8_t i = 0; i < LEDS_NUM; i++) {
+        leds[i] = CRGB::Blue;
         FastLED.show();
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(2000);
-
-        for (uint8_t i = 0; i < LEDS_NUM; i++) {
-            leds[i] = CRGB::Green;
-        }
-
-        FastLED.show();
-        delay(2000);
-
-        for (uint8_t i = 0; i < LEDS_NUM; i++) {
-            leds[i] = CRGB::Blue;
-            FastLED.show();
-            delay(100);
-        }
-
-        FastLED.show();
+        delay(100);
     }
 }
