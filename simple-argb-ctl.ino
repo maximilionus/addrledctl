@@ -8,7 +8,7 @@
 CRGB leds[LEDS_NUM];
 unsigned long btnLastPressTime = 0;
 
-enum ButtonStatus {
+enum class ButtonStatus {
     Released,
     Press,
     Hold
@@ -36,14 +36,14 @@ void loop() {
     // Process button input
     // TODO: Probably needs to be reworked into a split fnc
     const bool buttonRead = digitalRead(BUTTON_PIN);
-    ButtonStatus buttonStatus = Released;
+    ButtonStatus buttonStatus = ButtonStatus::Released;
 
     if (buttonRead == LOW) {
         const unsigned long btnTimeFromLastPress = millis() - btnLastPressTime;
-        if (btn_time_from_last_press <= 10) {
-            buttonStatus = Hold;
-        } else if (btn_time_from_last_press <= 1000) {
-            buttonStatus = Press;
+        if (btnTimeFromLastPress <= 10) {
+            buttonStatus = ButtonStatus::Hold;
+        } else if (btnTimeFromLastPress <= 1000) {
+            buttonStatus = ButtonStatus::Press;
         }
     }
 
