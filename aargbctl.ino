@@ -1,6 +1,6 @@
 #include <FastLED.h>
 
-#define NAME "argbctl"
+#define NAME "aargbctl"
 #define VERSION "1.0.0"
 #define DEBUG // Logging status to serial.
               // Comment out to disable.
