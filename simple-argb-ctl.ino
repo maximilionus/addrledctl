@@ -1,13 +1,17 @@
 #include <FastLED.h>
 
+#define NAME "argbctl"
 #define VERSION "1.0.0"
+#define DEBUG // Logging status to serial.
+              // Comment out to disable.
+
 #define BUTTON_PIN 10
 #define ARGB_DATA_PIN 3
 #define LEDS_NUM 16
 
 CRGB leds[LEDS_NUM];
-bool btnIsActive = false;
-unsigned long btnLastPressTime = 0;
+bool buttonIsActive = false;
+unsigned long buttonLastPressTime = 0;
 
 enum class ButtonStatus {
     Released,
@@ -16,11 +20,12 @@ enum class ButtonStatus {
 } buttonStatus = ButtonStatus::Released;
 
 void setup() {
+    #ifdef DEBUG
     Serial.begin(9600);
-    Serial.print(F("simple-argb-ctl, ver: "));
-    Serial.print(F(VERSION));
-    Serial.print(F(", rev: "));
-    Serial.println(__DATE__ " " __TIME__);
+    Serial.println(F(NAME));
+    Serial.print(F("ver: ")); Serial.println(F(VERSION));
+    Serial.print(F("rev: ")); Serial.println(F(__DATE__ " " __TIME__));
+    #endif
 
     pinMode(LED_BUILTIN, OUTPUT);  // DEBUG
     pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -30,7 +35,9 @@ void setup() {
     FastLED.clear();
     FastLED.show();
 
+    #ifdef DEBUG
     Serial.println(F("Setup done"));
+    #endif
 }
 
 void loop() {
@@ -43,22 +50,29 @@ void updateButton() {
     if (buttonRead == LOW) {
         // Button considered pressed on LOW because it's connected to ground
         // with internal pullup.
-        if (!btnIsActive) {
-            btnIsActive = true;
+        if (!buttonIsActive) {
+            buttonIsActive = true;
             buttonStatus = ButtonStatus::Press;
-            btnLastPressTime = millis();
-            Serial.println(F("Button press"));
+            buttonLastPressTime = millis();
+
+            #ifdef DEBUG
+            Serial.println(F("[btn] Press"));
+            #endif
         } else {
-            if (millis() - btnLastPressTime > 250 && buttonStatus != ButtonStatus::Hold) {
+            if (millis() - buttonLastPressTime > 250 && buttonStatus != ButtonStatus::Hold) {
                 buttonStatus = ButtonStatus::Hold;
-                Serial.println(F("Button hold"));
+                #ifdef DEBUG
+                Serial.println(F("[btn] Hold"));
+                #endif
             }
         }
    } else {
-        if (btnIsActive) {
-            btnIsActive = false;
+        if (buttonIsActive) {
+            buttonIsActive = false;
             buttonStatus = ButtonStatus::Released;
-            Serial.println(F("Button released"));
+            #ifdef DEBUG
+            Serial.println(F("[btn] Released"));
+            #endif
         }
    }
 }
