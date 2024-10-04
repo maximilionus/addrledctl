@@ -97,6 +97,7 @@ private:
     ControllerMode _previousMode;
     Button *_pbutton;
     CRGB _leds[LEDS_NUM];
+    uint16_t _ledIterator;
 
     void _setMode(ControllerMode mode) {
         this->_previousMode = this->_mode;
@@ -108,10 +109,23 @@ private:
         #endif
     }
 
+    void _bumpLEDIterator() {
+        if (this->_ledIterator <= 255) {
+            this->_ledIterator = this->_ledIterator++;
+        } else {
+            this->_ledIterator = 0;
+        }
+    }
+
+    void _clearLEDIterator() {
+        this->_ledIterator = 0;
+    }
+
 public:
     void setup(Button *button) {
         this->_pbutton = button;
         this->_setMode(ControllerMode::Idle);
+        this->_clearLEDIterator();
 
         pinMode(ARGB_DATA_PIN, OUTPUT);
         FastLED.addLeds<NEOPIXEL, ARGB_DATA_PIN>(this->_leds, LEDS_NUM);
@@ -137,21 +151,32 @@ public:
                 || currentControllerMode == ControllerMode::LEDConfigure_B) // Cycle through R,G,B
             {
                 this->_setMode(ControllerMode::LEDConfigure_R);
+                this->_clearLEDIterator();
                 fill_solid(this->_leds, 4, CRGB::Blue);
                 FastLED.show();
             } else if (currentControllerMode == ControllerMode::LEDConfigure_R) {
                 this->_setMode(ControllerMode::LEDConfigure_G);
+                this->_clearLEDIterator();
                 fill_solid(this->_leds, 4, CRGB::Blue);
                 FastLED.show();
             } else if (currentControllerMode == ControllerMode::LEDConfigure_G) {
                 this->_setMode(ControllerMode::LEDConfigure_B);
+                this->_clearLEDIterator();
                 fill_solid(this->_leds, 4, CRGB::Blue);
                 FastLED.show();
             }
             break;
 
         case ButtonMode::Hold:
-            // TODO: RGB values configuration planned here
+            switch (currentControllerMode) {
+            // TODO:
+            case ControllerMode::LEDConfigure_R:
+                break;
+            case ControllerMode::LEDConfigure_G:
+                break;
+            case ControllerMode::LEDConfigure_B:
+                break;
+            }
             break;
 
         case ButtonMode::Idle:
