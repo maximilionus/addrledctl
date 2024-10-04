@@ -121,7 +121,7 @@ private:
         }
 
         // Way to improv color input accuracy
-        delay(10);
+        delay(15);
     }
 
     void _clearLEDIterator() {
