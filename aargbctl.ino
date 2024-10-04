@@ -9,7 +9,7 @@
 #define ARGB_DATA_PIN 3
 #define LEDS_NUM 16
 
-enum class SystemMode {
+enum class ControllerMode {
     Idle,
     LEDConfigure_R,
     LEDConfigure_G,
@@ -91,10 +91,82 @@ public:
     }
 };
 
-SystemMode systemMode;
+class Controller {
+private:
+    ControllerMode _mode;
+    ControllerMode _previousMode;
+    Button *_pbutton;
+    CRGB _leds[LEDS_NUM];
+
+    void _setMode(ControllerMode mode) {
+        this->_previousMode = this->_mode;
+        this->_mode = mode;
+
+        #ifdef DEBUG
+        Serial.print(F("[ctlr] Mode: "));
+        Serial.println((uint16_t) mode);
+        #endif
+    }
+
+public:
+    void setup(Button *button) {
+        this->_pbutton = button;
+        this->_setMode(ControllerMode::Idle);
+
+        pinMode(ARGB_DATA_PIN, OUTPUT);
+        FastLED.addLeds<NEOPIXEL, ARGB_DATA_PIN>(this->_leds, LEDS_NUM);
+        FastLED.clear();
+        FastLED.show();
+    }
+
+    ControllerMode getMode() {
+        return this->_mode;
+    }
+
+    ControllerMode getPreviousMode() {
+        return this->_previousMode;
+    }
+
+    void tick() {
+        ControllerMode currentControllerMode = this->getMode();
+        ButtonMode currentButtonMode = this->_pbutton->getMode();
+
+        switch (currentButtonMode) {
+        case ButtonMode::PressUp:
+            if (currentControllerMode == ControllerMode::Idle \
+                || currentControllerMode == ControllerMode::LEDConfigure_B) // Cycle through R,G,B
+            {
+                this->_setMode(ControllerMode::LEDConfigure_R);
+                fill_solid(this->_leds, 4, CRGB::Blue);
+                FastLED.show();
+            } else if (currentControllerMode == ControllerMode::LEDConfigure_R) {
+                this->_setMode(ControllerMode::LEDConfigure_G);
+                fill_solid(this->_leds, 4, CRGB::Blue);
+                FastLED.show();
+            } else if (currentControllerMode == ControllerMode::LEDConfigure_G) {
+                this->_setMode(ControllerMode::LEDConfigure_B);
+                fill_solid(this->_leds, 4, CRGB::Blue);
+                FastLED.show();
+            }
+            break;
+
+        case ButtonMode::Hold:
+            // TODO: RGB values configuration planned here
+            break;
+
+        case ButtonMode::Idle:
+            if (this->_pbutton->getTimeFromLastPress() >= 5000 \
+                && currentControllerMode != ControllerMode::Idle)
+            {
+                this->_setMode(ControllerMode::Idle);
+            }
+            break;
+        }
+    }
+};
+
+Controller controller;
 Button button;
-CRGB leds[LEDS_NUM];
-uint8_t rgbIter = 0;
 
 void setup() {
     #ifdef DEBUG
@@ -104,16 +176,8 @@ void setup() {
     Serial.print(F("rev: ")); Serial.println(F(__DATE__ " " __TIME__));
     #endif
 
-    pinMode(LED_BUILTIN, OUTPUT);  // DEBUG
-    pinMode(ARGB_DATA_PIN, OUTPUT);
-
     button.setup();
-
-    FastLED.addLeds<NEOPIXEL, ARGB_DATA_PIN>(leds, LEDS_NUM);
-    FastLED.clear();
-    FastLED.show();
-
-    systemMode = SystemMode::Idle;
+    controller.setup(&button);
 
     #ifdef DEBUG
     Serial.println(F("Setup done"));
@@ -122,77 +186,5 @@ void setup() {
 
 void loop() {
     button.tick();
-    //updateMode();
-}
-
-void updateMode() {
-    if (button.getMode() == ButtonMode::PressUp) {
-        if (systemMode == SystemMode::Idle \
-            || systemMode == SystemMode::LEDConfigure_B) // Cycle through R,G,B
-        {
-            systemMode = SystemMode::LEDConfigure_R;
-            fill_solid(leds, 4, CRGB::Blue);
-            FastLED.show();
-
-            #ifdef DEBUG
-            Serial.println(F("[SysM] Conf LED R"));
-            #endif
-        } else if (systemMode == SystemMode::LEDConfigure_R) {
-            systemMode = SystemMode::LEDConfigure_G;
-            fill_solid(leds, 4, CRGB::Blue);
-            FastLED.show();
-
-            #ifdef DEBUG
-            Serial.println(F("[SysM] Conf LED G"));
-            #endif
-        } else if (systemMode == SystemMode::LEDConfigure_G) {
-            systemMode = SystemMode::LEDConfigure_B;
-            fill_solid(leds, 4, CRGB::Blue);
-            FastLED.show();
-
-            #ifdef DEBUG
-            Serial.println(F("[SysM] Conf LED B"));
-            #endif
-        }
-
-        // Hacky way to prevent ghost input on single press
-        //delay(250);
-    } else if (button.getMode() == ButtonMode::Hold) {
-        if (systemMode == SystemMode::LEDConfigure_R) {
-
-        }
-    } else if (button.getMode() == ButtonMode::Idle) {
-        if (button.getTimeFromLastPress() >= 5000 \
-            && systemMode != SystemMode::Idle)
-        {
-            systemMode = SystemMode::Idle;
-            #ifdef DEBUG
-            Serial.println(F("[SysM] Idle"));
-            #endif
-        }
-    }
-}
-
-// Test the RGB controls
-void testRGB() {
-    for (uint8_t i = 0; i < LEDS_NUM; i++) {
-        leds[i] = CRGB::Red;
-    }
-
-    FastLED.show();
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(2000);
-
-    for (uint8_t i = 0; i < LEDS_NUM; i++) {
-        leds[i] = CRGB::Green;
-    }
-
-    FastLED.show();
-    delay(2000);
-
-    for (uint8_t i = 0; i < LEDS_NUM; i++) {
-        leds[i] = CRGB::Blue;
-        FastLED.show();
-        delay(100);
-    }
+    controller.tick();
 }
