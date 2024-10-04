@@ -31,7 +31,7 @@ private:
     void _setMode(ButtonMode mode) {
         this->_mode = mode;
 
-        if (mode == ButtonMode::PressDown \
+        if (mode == ButtonMode::PressDown
             || mode == ButtonMode::PressUp)
         {
             this->_updateLastPress();
@@ -82,8 +82,11 @@ public:
                 }
             }
        } else {
-            if (currentMode == ButtonMode::PressDown) {
+            if (currentMode == ButtonMode::PressDown
+                || currentMode == ButtonMode::Hold)
+            {
                 this->_setMode(ButtonMode::PressUp);
+                this->_updateLastPress();
             } else if (currentMode != ButtonMode::Idle) {
                 this->_setMode(ButtonMode::Idle);
             }
@@ -97,6 +100,7 @@ private:
     ControllerMode _previousMode;
     Button *_pbutton;
     CRGB _leds[LEDS_NUM];
+    CRGB _globalColor;
     uint16_t _ledIterator;
 
     void _setMode(ControllerMode mode) {
@@ -111,10 +115,13 @@ private:
 
     void _bumpLEDIterator() {
         if (this->_ledIterator <= 255) {
-            this->_ledIterator = this->_ledIterator++;
+            this->_ledIterator += 1;
         } else {
             this->_ledIterator = 0;
         }
+
+        // Way to improv color input accuracy
+        delay(10);
     }
 
     void _clearLEDIterator() {
@@ -125,6 +132,7 @@ public:
     void setup(Button *button) {
         this->_pbutton = button;
         this->_setMode(ControllerMode::Idle);
+        this->_globalColor.setRGB(0,0,0);
         this->_clearLEDIterator();
 
         pinMode(ARGB_DATA_PIN, OUTPUT);
@@ -147,43 +155,56 @@ public:
 
         switch (currentButtonMode) {
         case ButtonMode::PressUp:
-            if (currentControllerMode == ControllerMode::Idle \
+            if (currentControllerMode == ControllerMode::Idle
                 || currentControllerMode == ControllerMode::LEDConfigure_B) // Cycle through R,G,B
             {
                 this->_setMode(ControllerMode::LEDConfigure_R);
                 this->_clearLEDIterator();
-                fill_solid(this->_leds, 4, CRGB::Blue);
+                fill_solid(this->_leds, 1, CRGB::Red);
                 FastLED.show();
             } else if (currentControllerMode == ControllerMode::LEDConfigure_R) {
                 this->_setMode(ControllerMode::LEDConfigure_G);
                 this->_clearLEDIterator();
-                fill_solid(this->_leds, 4, CRGB::Blue);
+                fill_solid(this->_leds, 1, CRGB::Green);
                 FastLED.show();
             } else if (currentControllerMode == ControllerMode::LEDConfigure_G) {
                 this->_setMode(ControllerMode::LEDConfigure_B);
                 this->_clearLEDIterator();
-                fill_solid(this->_leds, 4, CRGB::Blue);
+                fill_solid(this->_leds, 1, CRGB::Blue);
                 FastLED.show();
             }
             break;
 
         case ButtonMode::Hold:
             switch (currentControllerMode) {
-            // TODO:
             case ControllerMode::LEDConfigure_R:
+                this->_globalColor.r = this->_ledIterator;
+                this->_bumpLEDIterator();
+                fill_solid(this->_leds+1, LEDS_NUM-1, this->_globalColor);
+                FastLED.show();
                 break;
             case ControllerMode::LEDConfigure_G:
+                this->_globalColor.g = this->_ledIterator;
+                this->_bumpLEDIterator();
+                fill_solid(this->_leds+1, LEDS_NUM-1, this->_globalColor);
+                FastLED.show();
                 break;
             case ControllerMode::LEDConfigure_B:
+                this->_globalColor.b = this->_ledIterator;
+                this->_bumpLEDIterator();
+                fill_solid(this->_leds+1, LEDS_NUM-1, this->_globalColor);
+                FastLED.show();
                 break;
             }
             break;
 
         case ButtonMode::Idle:
-            if (this->_pbutton->getTimeFromLastPress() >= 5000 \
+            if (this->_pbutton->getTimeFromLastPress() >= 5000
                 && currentControllerMode != ControllerMode::Idle)
             {
                 this->_setMode(ControllerMode::Idle);
+                fill_solid(this->_leds, LEDS_NUM, this->_globalColor);
+                FastLED.show();
             }
             break;
         }
