@@ -199,7 +199,7 @@ public:
             break;
 
         case ButtonMode::Idle:
-            if (this->_pbutton->getTimeFromLastPress() >= 5000
+            if (this->_pbutton->getTimeFromLastPress() >= 10000
                 && currentControllerMode != ControllerMode::Idle)
             {
                 this->_setMode(ControllerMode::Idle);
