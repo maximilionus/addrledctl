@@ -1,3 +1,4 @@
+#include <EEPROM.h>
 #include <FastLED.h>
 
 #define NAME "aargbctl"
@@ -135,9 +136,14 @@ public:
         this->_globalColor.setRGB(0,0,0);
         this->_clearLEDIterator();
 
+        EEPROM.get(0, this->_globalColor);
+        #ifdef DEBUG
+        Serial.println(F("[eemem] Values read"));
+        #endif
+
         pinMode(ARGB_DATA_PIN, OUTPUT);
         FastLED.addLeds<NEOPIXEL, ARGB_DATA_PIN>(this->_leds, LEDS_NUM);
-        FastLED.clear();
+        fill_solid(this->_leds, LEDS_NUM, this->_globalColor);
         FastLED.show();
     }
 
@@ -205,6 +211,12 @@ public:
                 this->_setMode(ControllerMode::Idle);
                 fill_solid(this->_leds, LEDS_NUM, this->_globalColor);
                 FastLED.show();
+
+                EEPROM.put(0, this->_globalColor);
+
+                #ifdef DEBUG
+                Serial.println(F("[eemem] Values updated"));
+                #endif
             }
             break;
         }
