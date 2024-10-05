@@ -1,6 +1,3 @@
-#include <EEPROM.h>
-#include <FastLED.h>
-
 #define NAME "addrledctl"
 #define VERSION "1.0.0"
 #define SERIAL_ON true // Logging status to serial.
@@ -10,6 +7,11 @@
 #define BUTTON_PIN 10
 #define ARGB_DATA_PIN 3
 #define LEDS_NUM 16
+
+#if EEPROM_ON
+#include <EEPROM.h>
+#endif
+#include <FastLED.h>
 
 enum class ControllerMode {
     Idle,
