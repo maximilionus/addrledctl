@@ -1,10 +1,11 @@
 #include <EEPROM.h>
 #include <FastLED.h>
 
-#define NAME "aargbctl"
+#define NAME "addrledctl"
 #define VERSION "1.0.0"
-#define DEBUG // Logging status to serial.
-              // Comment out to disable.
+#define SERIAL_ON true // Logging status to serial.
+#define SERIAL_BAUD 9600
+#define EEPROM_ON true // Use EEPROM to store the user settings
 
 #define BUTTON_PIN 10
 #define ARGB_DATA_PIN 3
@@ -36,12 +37,12 @@ private:
             || mode == ButtonMode::PressUp)
         {
             this->_updateLastPress();
-            #ifdef DEBUG
+            #if SERIAL_ON
             Serial.println(F("[btn] Upd press time"));
             #endif
         }
 
-        #ifdef DEBUG
+        #if SERIAL_ON
         Serial.print(F("[btn] Mode: "));
         Serial.println((uint16_t) mode);
         #endif
@@ -110,7 +111,7 @@ private:
         this->_previousMode = this->_mode;
         this->_mode = mode;
 
-        #ifdef DEBUG
+        #if SERIAL_ON
         Serial.print(F("[ctlr] Mode: "));
         Serial.println((uint16_t) mode);
         #endif
@@ -138,9 +139,11 @@ public:
         this->_globalColor.setRGB(0,0,0);
         this->_clearLEDIterator();
 
+        #if EEPROM_ON
         EEPROM.get(0, this->_globalColor);
-        #ifdef DEBUG
+        #if SERIAL_ON
         Serial.println(F("[eemem] Values read"));
+        #endif
         #endif
 
         pinMode(ARGB_DATA_PIN, OUTPUT);
@@ -214,10 +217,12 @@ public:
                 fill_solid(this->_leds, LEDS_NUM, this->_globalColor);
                 FastLED.show();
 
+                #if EEPROM_ON
                 EEPROM.put(0, this->_globalColor);
 
-                #ifdef DEBUG
+                #if SERIAL_ON
                 Serial.println(F("[eemem] Values updated"));
+                #endif
                 #endif
             }
             break;
@@ -229,8 +234,8 @@ Controller controller;
 Button button;
 
 void setup() {
-    #ifdef DEBUG
-    Serial.begin(9600);
+    #if SERIAL_ON
+    Serial.begin(SERIAL_BAUD);
     Serial.println(F(NAME));
     Serial.print(F("ver: ")); Serial.println(F(VERSION));
     Serial.print(F("rev: ")); Serial.println(F(__DATE__ " " __TIME__));
@@ -239,7 +244,7 @@ void setup() {
     button.setup();
     controller.setup(&button);
 
-    #ifdef DEBUG
+    #if SERIAL_ON
     Serial.println(F("Setup done"));
     #endif
 }
