@@ -83,12 +83,14 @@ public:
                 }
             }
        } else {
-            if (currentMode == ButtonMode::PressDown
-                || currentMode == ButtonMode::Hold)
-            {
+            if (currentMode == ButtonMode::PressDown) {
                 this->_setMode(ButtonMode::PressUp);
                 this->_updateLastPress();
-            } else if (currentMode != ButtonMode::Idle) {
+            } else if (
+                currentMode != ButtonMode::Idle
+                || currentMode == ButtonMode::Hold
+            )
+            {
                 this->_setMode(ButtonMode::Idle);
             }
        }
