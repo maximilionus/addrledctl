@@ -28,9 +28,11 @@ enum class ButtonMode {
 class Button {
 private:
     ButtonMode _mode;
+    ButtonMode _previousMode;
     unsigned long _lastPressTime;
 
     void _setMode(ButtonMode mode) {
+        this->_previousMode = this->_mode;
         this->_mode = mode;
 
         if (mode == ButtonMode::PressDown
@@ -66,6 +68,10 @@ public:
 
     ButtonMode getMode() {
         return this->_mode;
+    }
+
+    ButtonMode getPreviousMode() {
+        return this->_previousMode;
     }
 
     unsigned long getTimeFromLastPress() {
@@ -105,7 +111,8 @@ private:
     Button *_pbutton;
     CRGB _leds[LEDS_NUM];
     CRGB _globalColor;
-    uint16_t _ledIterator;
+    int16_t _ledIterator = 0;
+    int16_t _ledIteratorDirection = 1;
 
     void _setMode(ControllerMode mode) {
         this->_previousMode = this->_mode;
@@ -118,13 +125,22 @@ private:
     }
 
     void _bumpLEDIterator() {
-        if (this->_ledIterator <= 255) {
-            this->_ledIterator += 1;
-        } else {
+        this->_ledIterator += this->_ledIteratorDirection;
+
+        if (this->_ledIterator > 255) {
+            this->_ledIterator = 255;
+            this->_invertLEDIteratorDirection();
+        } else if (this->_ledIterator < 0) {
             this->_ledIterator = 0;
+            this->_invertLEDIteratorDirection();
         }
 
-        // Way to improv color input accuracy
+        #if SERIAL_ON
+        Serial.print(F("[ctlr] LED value: "));
+        Serial.println(this->_ledIterator);
+        #endif
+
+        // Way to improve color input accuracy
         delay(15);
     }
 
@@ -132,12 +148,15 @@ private:
         this->_ledIterator = 0;
     }
 
+    void _invertLEDIteratorDirection() {
+        this->_ledIteratorDirection *= -1;
+    }
+
 public:
     void setup(Button *button) {
         this->_pbutton = button;
         this->_setMode(ControllerMode::Idle);
         this->_globalColor.setRGB(0,0,0);
-        this->_clearLEDIterator();
 
         #if EEPROM_ON
         EEPROM.get(0, this->_globalColor);
@@ -210,20 +229,23 @@ public:
             break;
 
         case ButtonMode::Idle:
-            if (this->_pbutton->getTimeFromLastPress() >= 10000
-                && currentControllerMode != ControllerMode::Idle)
-            {
-                this->_setMode(ControllerMode::Idle);
-                fill_solid(this->_leds, LEDS_NUM, this->_globalColor);
-                FastLED.show();
+            if (currentControllerMode != ControllerMode::Idle) {
+                if (this->_pbutton->getTimeFromLastPress() >= 10000) {
+                    this->_setMode(ControllerMode::Idle);
+                    fill_solid(this->_leds, LEDS_NUM, this->_globalColor);
+                    FastLED.show();
 
-                #if EEPROM_ON
-                EEPROM.put(0, this->_globalColor);
+                    #if EEPROM_ON
+                    EEPROM.put(0, this->_globalColor);
 
-                #if SERIAL_ON
-                Serial.println(F("[eemem] Values updated"));
-                #endif
-                #endif
+                    #if SERIAL_ON
+                    Serial.println(F("[eemem] Values updated"));
+                    #endif
+                    #endif
+                } else if (this->_pbutton->getPreviousMode() == ButtonMode::Hold)
+                {
+                    this->_invertLEDIteratorDirection();
+                }
             }
             break;
         }
