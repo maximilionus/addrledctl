@@ -33,6 +33,8 @@ shared between the Arduino board and LED strip to send the signal.
 All pins are defined in human readable format with preprocessor `#define`s in
 main sketch file.
 
+Button is configured to be connected from ground (active on LOW).
+
 When connecting the ARGB data pin, it's recommended to use the ~320 Ohm
 resistor to limit the signal amplitude.
 
