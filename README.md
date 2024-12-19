@@ -11,13 +11,13 @@ one button.
 
 
 ## Controls
-Long press the button no enter the configuration mode. You'll see the current
-selected color (R,G,B) on the first 4 LEDs. LEDs after the first 4 will show
-the final result of RGB. Hold the button to start the iteration through the
+Long press the button to enter the configuration mode. You'll see the current
+selected color (R, G, B) on the first 4 LEDs. LEDs after the first 4 will show
+the final result of R+G+B. Hold the button to start the iteration through the
 selected color, and release when the desired color is achieved. Single pressing
-the button in configuration mode will switch the current selected color. System
-will exit from configuration and save the selected values to EEPROM after 10
-seconds of button inactivity.
+the button in configuration mode will cycle through the available colors.
+System will exit from configuration mode and save the selected values to a
+non-volatile memory after 10 seconds of button inactivity.
 
 
 ## Assembly
