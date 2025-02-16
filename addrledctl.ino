@@ -2,10 +2,11 @@
 #include <FastLED.h>
 
 #define NAME "addrledctl"
-#define VERSION "1.0.0"
-#define SERIAL_ON true // Logging status to serial.
+#define VERSION "1.1.0"
+#define SERIAL_ON true
 #define SERIAL_BAUD 9600
-#define EEPROM_ON true // Use EEPROM to store the user settings
+#define EEPROM_FORCE_REWRITE false
+#define EEPROM_MAGIC 69
 
 #define BUTTON_PIN 10
 #define ARGB_DATA_PIN 3
@@ -23,6 +24,12 @@ enum class ButtonMode {
     PressDown,
     PressUp,
     Hold
+};
+
+struct Configuration {
+    uint8_t magic;
+    CRGB color;
+    bool isOn;
 };
 
 class Button {
@@ -102,9 +109,9 @@ class Controller {
 private:
     ControllerMode _mode;
     ControllerMode _previousMode;
+    Configuration _configuration;
     Button *_pbutton;
     CRGB _leds[LEDS_NUM];
-    CRGB _globalColor;
     uint16_t _ledIterator;
 
     void _setMode(ControllerMode mode) {
@@ -112,7 +119,7 @@ private:
         this->_mode = mode;
 
         #if SERIAL_ON
-        Serial.print(F("[ctlr] Mode: "));
+        Serial.print(F("[ctrl] Mode: "));
         Serial.println((uint16_t) mode);
         #endif
     }
@@ -132,23 +139,49 @@ private:
         this->_ledIterator = 0;
     }
 
+    void _initConfiguration() {
+        this->_configuration.magic = EEPROM_MAGIC;
+        this->_configuration.isOn = true;
+        this->_configuration.color.setRGB(128, 128, 128);
+    }
+
+    void _readEEPROM() {
+        EEPROM.get(0, this->_configuration);
+        uint8_t memMagic = this->_configuration.magic;
+        Serial.println(F("[eemem] Config read"));
+
+        if (memMagic != EEPROM_MAGIC || EEPROM_FORCE_REWRITE) {
+            this->_initConfiguration();
+            this->_writeEEPROM();
+
+            #if SERIAL_ON
+            #if EEPROM_FORCE_REWRITE
+            Serial.println(F("[eemem] Forced overwrite"));
+            #else
+            Serial.println(F("[eemem] Corruption fixed"));
+            Serial.print(F("\tMagic: ")); Serial.println(memMagic);
+            #endif
+            #endif
+        }
+    };
+
+    void _writeEEPROM() {
+        EEPROM.put(0, this->_configuration);
+        #if SERIAL_ON
+        Serial.println(F("[eemem] Values set"));
+        #endif
+    };
+
 public:
     void setup(Button *button) {
         this->_pbutton = button;
         this->_setMode(ControllerMode::Idle);
-        this->_globalColor.setRGB(0,0,0);
-        this->_clearLEDIterator();
-
-        #if EEPROM_ON
-        EEPROM.get(0, this->_globalColor);
-        #if SERIAL_ON
-        Serial.println(F("[eemem] Values read"));
-        #endif
-        #endif
+        this->_initConfiguration();
+        this->_readEEPROM();
 
         pinMode(ARGB_DATA_PIN, OUTPUT);
         FastLED.addLeds<NEOPIXEL, ARGB_DATA_PIN>(this->_leds, LEDS_NUM);
-        fill_solid(this->_leds, LEDS_NUM, this->_globalColor);
+        fill_solid(this->_leds, LEDS_NUM, this->_configuration.color);
         FastLED.show();
     }
 
@@ -189,21 +222,21 @@ public:
         case ButtonMode::Hold:
             switch (currentControllerMode) {
             case ControllerMode::LEDConfigure_R:
-                this->_globalColor.r = this->_ledIterator;
+                this->_configuration.color.r = this->_ledIterator;
                 this->_bumpLEDIterator();
-                fill_solid(this->_leds+1, LEDS_NUM-1, this->_globalColor);
+                fill_solid(this->_leds+1, LEDS_NUM-1, this->_configuration.color);
                 FastLED.show();
                 break;
             case ControllerMode::LEDConfigure_G:
-                this->_globalColor.g = this->_ledIterator;
+                this->_configuration.color.g = this->_ledIterator;
                 this->_bumpLEDIterator();
-                fill_solid(this->_leds+1, LEDS_NUM-1, this->_globalColor);
+                fill_solid(this->_leds+1, LEDS_NUM-1, this->_configuration.color);
                 FastLED.show();
                 break;
             case ControllerMode::LEDConfigure_B:
-                this->_globalColor.b = this->_ledIterator;
+                this->_configuration.color.b = this->_ledIterator;
                 this->_bumpLEDIterator();
-                fill_solid(this->_leds+1, LEDS_NUM-1, this->_globalColor);
+                fill_solid(this->_leds+1, LEDS_NUM-1, this->_configuration.color);
                 FastLED.show();
                 break;
             }
@@ -214,16 +247,10 @@ public:
                 && currentControllerMode != ControllerMode::Idle)
             {
                 this->_setMode(ControllerMode::Idle);
-                fill_solid(this->_leds, LEDS_NUM, this->_globalColor);
+                fill_solid(this->_leds, LEDS_NUM, this->_configuration.color);
                 FastLED.show();
 
-                #if EEPROM_ON
-                EEPROM.put(0, this->_globalColor);
-
-                #if SERIAL_ON
-                Serial.println(F("[eemem] Values updated"));
-                #endif
-                #endif
+                this->_writeEEPROM();
             }
             break;
         }
