@@ -90,18 +90,16 @@ public:
                     this->_setMode(ButtonMode::Hold);
                 }
             }
-       } else {
+        } else {
             if (currentMode == ButtonMode::PressDown) {
                 this->_setMode(ButtonMode::PressUp);
                 this->_updateLastPress();
-            } else if (
-                currentMode != ButtonMode::Idle
-                || currentMode == ButtonMode::Hold
-            )
+            } else if (currentMode != ButtonMode::Idle
+                       || currentMode == ButtonMode::Hold)
             {
                 this->_setMode(ButtonMode::Idle);
             }
-       }
+        }
     }
 };
 
@@ -125,14 +123,23 @@ private:
     }
 
     void _bumpLEDIterator() {
-        if (this->_ledIterator <= 255) {
-            this->_ledIterator += 1;
-        } else {
-            this->_ledIterator = 0;
-        }
+        unsigned long btnHoldTime = this->_pbutton->getTimeFromLastPress();
+        // Progressive acceleration precision
+        int step = map(
+            constrain(btnHoldTime, 0 , 3000),
+            0, 4000,
+            1, 5
+        );
 
-        // Way to improv color input accuracy
-        delay(15);
+        // Bump the iterator ensuring it fits under 256 (255 colors) limit
+        this->_ledIterator = (this->_ledIterator + step) % 256;
+
+        // Progressive delay decrease on button hold
+        delay(map(
+            constrain(btnHoldTime, 0, 3000),
+            0, 4000,
+            100, 50
+        ));
     }
 
     void _clearLEDIterator() {
