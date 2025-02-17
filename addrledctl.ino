@@ -2,7 +2,7 @@
 #include <FastLED.h>
 
 #define NAME "addrledctl"
-#define VERSION "1.1.0"
+#define VERSION "1.2.0"
 #define SERIAL_ON true
 #define SERIAL_BAUD 9600
 #define EEPROM_FORCE_REWRITE false
@@ -35,19 +35,17 @@ struct Configuration {
 class Button {
 private:
     ButtonMode _mode;
+    ButtonMode _previousMode;
     unsigned long _lastPressTime;
 
     void _setMode(ButtonMode mode) {
+        this->_previousMode = this->_mode;
         this->_mode = mode;
 
-        if (mode == ButtonMode::PressDown
-            || mode == ButtonMode::PressUp)
-        {
-            this->_updateLastPress();
-            #if SERIAL_ON
-            Serial.println(F("[btn] Upd press time"));
-            #endif
-        }
+        this->_updateLastPress();
+        #if SERIAL_ON
+        Serial.println(F("[btn] Update press time"));
+        #endif
 
         #if SERIAL_ON
         Serial.print(F("[btn] Mode: "));
@@ -75,6 +73,10 @@ public:
         return this->_mode;
     }
 
+    ButtonMode getPreviousMode() {
+        return this->_previousMode;
+    }
+
     unsigned long getTimeFromLastPress() {
         return millis() - this->_lastPressTime;
     }
@@ -85,18 +87,27 @@ public:
         if (this->isPressed()) {
             if (currentMode == ButtonMode::Idle) {
                 this->_setMode(ButtonMode::PressDown);
-            } else if (currentMode == ButtonMode::PressDown) {
-                if (this->getTimeFromLastPress() > 250 && currentMode != ButtonMode::Hold) {
-                    this->_setMode(ButtonMode::Hold);
-                }
+            } else if (currentMode == ButtonMode::PressDown
+                       && this->getTimeFromLastPress() > 250)
+            {
+                this->_setMode(ButtonMode::Hold);
+            } else if (currentMode == ButtonMode::Hold
+                       && this->getPreviousMode() != ButtonMode::Hold)
+            {
+                // Repeat the mode set to fill the queue
+                this->_setMode(ButtonMode::Hold);
             }
         } else {
             if (currentMode == ButtonMode::PressDown) {
                 this->_setMode(ButtonMode::PressUp);
-                this->_updateLastPress();
-            } else if (currentMode != ButtonMode::Idle
+            } else if (currentMode == ButtonMode::PressUp
                        || currentMode == ButtonMode::Hold)
             {
+                this->_setMode(ButtonMode::Idle);
+            } else if (currentMode == ButtonMode::Idle
+                       && this->getPreviousMode() != ButtonMode::Idle)
+            {
+                // Repeat the mode set to fill the queue
                 this->_setMode(ButtonMode::Idle);
             }
         }
@@ -188,7 +199,9 @@ public:
 
         pinMode(ARGB_DATA_PIN, OUTPUT);
         FastLED.addLeds<NEOPIXEL, ARGB_DATA_PIN>(this->_leds, LEDS_NUM);
-        fill_solid(this->_leds, LEDS_NUM, this->_configuration.color);
+        CRGB color = this->_configuration.isOn ? \
+                     this->_configuration.color : CRGB::Black;
+        fill_solid(this->_leds, LEDS_NUM, color);
         FastLED.show();
     }
 
@@ -246,12 +259,24 @@ public:
                 fill_solid(this->_leds+1, LEDS_NUM-1, this->_configuration.color);
                 FastLED.show();
                 break;
+            case ControllerMode::Idle:
+                if (this->_pbutton->getPreviousMode() != ButtonMode::Hold)
+                {
+                    this->_configuration.isOn = !this->_configuration.isOn;
+                    CRGB color = this->_configuration.isOn ? \
+                        this->_configuration.color : CRGB::Black;
+                    fill_solid(this->_leds, LEDS_NUM, color);
+                    FastLED.show();
+                    this->_writeEEPROM();
+                }
+                break;
             }
             break;
 
         case ButtonMode::Idle:
-            if (this->_pbutton->getTimeFromLastPress() >= 10000
-                && currentControllerMode != ControllerMode::Idle)
+            if (currentControllerMode != ControllerMode::Idle
+                && this->_pbutton->getTimeFromLastPress() >= 10000
+                && !this->_pbutton->isPressed())
             {
                 this->_setMode(ControllerMode::Idle);
                 fill_solid(this->_leds, LEDS_NUM, this->_configuration.color);
