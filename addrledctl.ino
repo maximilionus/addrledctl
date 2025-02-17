@@ -127,8 +127,8 @@ private:
         // Progressive acceleration precision
         int step = map(
             constrain(btnHoldTime, 0 , 3000),
-            0, 3000,
-            1, 10
+            0, 4000,
+            1, 5
         );
 
         // Bump the iterator ensuring it fits under 256 (255 colors) limit
@@ -137,8 +137,8 @@ private:
         // Progressive delay decrease on button hold
         delay(map(
             constrain(btnHoldTime, 0, 3000),
-            0, 3000,
-            100, 10
+            0, 4000,
+            100, 50
         ));
     }
 
